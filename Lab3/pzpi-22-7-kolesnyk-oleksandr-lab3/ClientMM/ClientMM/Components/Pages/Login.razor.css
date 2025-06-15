@@ -1,0 +1,117 @@
+/* Основні стилі контейнера та форми */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f5f5f5;
+    padding: 20px;
+}
+
+.login-form {
+    width: 100%;
+    max-width: 400px;
+    padding: 2rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Стилі для заголовків */
+.form-title {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #2c3e50;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.forgot-password-form h3 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #2c3e50;
+    font-size: 1.25rem;
+}
+
+/* Стилі для полів вводу */
+.login-object {
+    margin-bottom: 1.5rem;
+}
+
+.e-input-group {
+    width: 100%;
+}
+
+.e-float-input input,
+.e-float-input textarea {
+    font-size: 1rem;
+}
+
+/* Стилі для кнопок */
+.form-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+    gap: 10px;
+}
+
+.alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 480px) {
+    .login-form {
+        padding: 1.5rem;
+    }
+
+    .form-footer {
+        flex-direction: column;
+    }
+
+    button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+        button:last-child {
+            margin-bottom: 0;
+        }
+}
+
+.e-datepicker,
+.e-dropdownlist {
+    width: 100%;
+}
+
+.e-input-group-icon {
+    color: #7f8c8d;
+}
+
+.e-float-input.e-input-group:not(.e-float-icon-left) .e-input-group-icon,
+.e-float-input.e-control-wrapper.e-input-group:not(.e-float-icon-left) .e-input-group-icon {
+    right: 8px;
+}
+
+/* Стилі для стану завантаження */
+.loading-state {
+    position: relative;
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+    .loading-state::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.5);
+        z-index: 10;
+    }

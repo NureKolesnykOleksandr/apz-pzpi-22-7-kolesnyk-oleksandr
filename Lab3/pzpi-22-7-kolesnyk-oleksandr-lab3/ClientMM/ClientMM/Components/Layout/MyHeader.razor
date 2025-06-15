@@ -1,0 +1,65 @@
+﻿@using ClientMM.Interfaces
+@using ClientMM.Services
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject ICookieService cookieService
+@inject StateContainer stateContainer
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<style>
+    .header {
+        width: 100%;
+        background-color: #4CAF50;
+        color: white;
+        padding: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-sizing: border-box;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+        .header h3 {
+            margin: 0;
+        }
+
+    .logout-btn {
+        background-color: transparent;
+        color: white;
+        border: 1px solid white;
+        border-radius: 4px;
+        padding: 0.25rem 0.75rem;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+        .logout-btn:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+</style>
+
+<div class="header">
+    <h3>MedMon</h3>
+    <button class="logout-btn" @onclick="Device">Devices</button>
+    <button class="logout-btn" @onclick="Logout">Logout</button>
+</div>
+
+@Body
+
+@code {
+    private void Logout()
+    {
+        cookieService.SetCookie("Id", "");
+        cookieService.SetCookie("Name", "");
+        cookieService.SetCookie("Email", "");
+        stateContainer.ShowHeader = false;
+        StateHasChanged();
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+
+    private void Device()
+    {
+        Navigation.NavigateTo("/device", forceLoad: true);
+    }
+}

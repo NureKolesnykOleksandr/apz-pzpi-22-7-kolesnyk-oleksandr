@@ -1,0 +1,39 @@
+﻿@using ClientMM.Dtos;
+@using ClientMM.Interfaces;
+@using ClientMM.Models;
+@using ClientMM.Services;
+@inject NavigationManager Navigation
+@inject ICookieService CookieService
+
+<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>
+
+@code {
+    protected async override Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        if (Int32.TryParse(CookieService.GetCookie("Id"), out int userId))
+        {
+            if (userId == 1 && !Navigation.Uri.EndsWith("/admin") && !Navigation.Uri.EndsWith("/device"))
+            {
+                Navigation.NavigateTo("/admin", forceLoad: true);
+                return;
+            }
+        }
+        else
+        {
+            if (!Navigation.Uri.EndsWith("/login") && !Navigation.Uri.EndsWith("/register"))
+            {
+                Navigation.NavigateTo("/login", forceLoad: true);
+                return;
+            }
+        }
+
+
+    }
+}

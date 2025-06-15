@@ -29,7 +29,7 @@ namespace ServerMM.Repositories
                 m.Body = body;
                 SmtpClient smtp = new SmtpClient("smtp.gmail.com", 587)
                 {
-                    Credentials = new NetworkCredential("oleksandr.kolesnyk@nure.ua", "qwert2004"),
+                    Credentials = new NetworkCredential("oleksandr.kolesnyk@nure.ua", "wlto cyrn imtd zdwx"),
                     EnableSsl = true
                 };
                 smtp.Send(m);

@@ -11,4 +11,11 @@ namespace ServerMM.Dtos
         [Required]
         public string Password { get; init; }
     }
+
+    public record LoginResultDto
+    {
+        public int UserId { get; init; }
+        public string FirstName { get; init; }
+        public string Email { get; init; }
+    }
 }

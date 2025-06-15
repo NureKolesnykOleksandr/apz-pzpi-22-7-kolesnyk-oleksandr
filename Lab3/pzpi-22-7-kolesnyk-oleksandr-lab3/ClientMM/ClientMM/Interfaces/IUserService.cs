@@ -1,10 +1,10 @@
-﻿using Microsoft.AspNetCore.Identity;
-using ServerMM.Dtos;
-using ServerMM.Models;
+﻿using ClientMM.Dtos;
+using ClientMM.Models;
+using Microsoft.AspNetCore.Identity;
 
-namespace ServerMM.Interfaces
+namespace ClientMM.Interfaces
 {
-    public interface IUserRepository
+    public interface IUserService
     {
         Task<LoginResultDto?> Register(RegisterDto registerDto);
 
@@ -17,10 +17,7 @@ namespace ServerMM.Interfaces
 
         Task<IdentityResult> UpdateUserOptions(int userId, UpdateUserOptionsDto updateUserOptionsDto);
 
-        Task<IdentityResult> BanUser(int userId);
-        Task<IdentityResult> UnBanUser(int userId);
-
-        Task<bool> IfAdmin(string password);
-
+        Task<IdentityResult> BanUser(int userId, string password);
+        Task<IdentityResult> UnBanUser(int userId, string password);
     }
 }

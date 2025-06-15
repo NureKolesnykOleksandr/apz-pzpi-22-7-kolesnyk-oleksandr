@@ -1,0 +1,156 @@
+﻿@page "/admin"
+@using ClientMM.Services
+@using ClientMM.Interfaces
+@using ClientMM.Dtos
+@using ClientMM.Models
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Identity
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Inputs
+@inject IUserService UserService
+@inject NavigationManager Navigation
+
+@rendermode InteractiveServer
+
+<PageTitle>Admin Panel</PageTitle>
+
+<div class="admin-container">
+    <h1>User Management</h1>
+    
+    @if (users == null)
+    {
+        <p>Loading users...</p>
+    }
+    else
+    {
+        <SfGrid @ref="Grid" DataSource="@users" AllowPaging="false" AllowSorting="true" AllowFiltering="false">
+            <GridColumns>
+                <GridColumn Field=@nameof(ClientMM.Models.User.userId) HeaderText="ID" Width="80" TextAlign="TextAlign.Center"></GridColumn>
+                <GridColumn Field=@nameof(ClientMM.Models.User.firstName) HeaderText="First Name"></GridColumn>
+                <GridColumn Field=@nameof(ClientMM.Models.User.lastName) HeaderText="Last Name"></GridColumn>
+                <GridColumn Field=@nameof(ClientMM.Models.User.email) HeaderText="Email" Width="200"></GridColumn>
+                <GridColumn Field=@nameof(ClientMM.Models.User.createdAt) HeaderText="Registered" Format="d" Type="ColumnType.Date" Width="120"></GridColumn>
+                <GridColumn Field=@nameof(ClientMM.Models.User.isBanned) HeaderText="Status" Width="120">
+                    <Template>
+                        @{
+                            var user = (context as ClientMM.Models.User);
+                            <span class="status-badge @(user.isBanned ? "banned" : "active")">
+                                @(user.isBanned ? "Banned" : "Active")
+                            </span>
+                        }
+                    </Template>
+                </GridColumn>
+                <GridColumn HeaderText="Actions" Width="150">
+                    <Template>
+                        @{
+                            var user = (context as ClientMM.Models.User);
+                            <div class="action-buttons">
+                                <SfButton @onclick="@(() => ToggleBanStatus(user))" CssClass="@(user.isBanned ? "unban-btn" : "ban-btn")">
+                                    @(user.isBanned ? "Unban" : "Ban")
+                                </SfButton>
+                            </div>
+                        }
+                    </Template>
+                </GridColumn>
+            </GridColumns>
+        </SfGrid>
+    }
+</div>
+
+<SfDialog @bind-Visible="@showPasswordDialog" Width="400px" ShowCloseIcon="true" Header="Admin Authentication">
+    <DialogTemplates>
+        <Content>
+            <p>Please enter your admin password to @(selectedUser?.isBanned == true ? "unban" : "ban") this user:</p>
+            <SfTextBox @bind-Value="@adminPassword" Placeholder="Admin Password" Type="InputType.Password"></SfTextBox>
+            @if (!string.IsNullOrEmpty(banError))
+            {
+                <div class="error-message">@banError</div>
+            }
+        </Content>
+    </DialogTemplates>
+    <DialogButtons>
+        <DialogButton Content="Confirm" OnClick="@ConfirmBanAction" IsPrimary="true" />
+        <DialogButton Content="Cancel" OnClick="@CancelBanAction" />
+    </DialogButtons>
+</SfDialog>
+
+@code {
+    private List<ClientMM.Models.User> users;
+    private SfGrid<ClientMM.Models.User> Grid;
+    private bool showPasswordDialog = false;
+    private ClientMM.Models.User selectedUser;
+    private string adminPassword = string.Empty;
+    private string banError = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            users = await UserService.GetUsers();
+        }
+        catch (Exception ex)
+        {
+            // Handle error
+            Console.WriteLine($"Error loading users: {ex.Message}");
+        }
+        }
+
+    private void ToggleBanStatus(ClientMM.Models.User user)
+    {
+        selectedUser = user;
+        adminPassword = string.Empty;
+        banError = string.Empty;
+        showPasswordDialog = true;
+    }
+
+    private async Task ConfirmBanAction()
+    {
+        if (string.IsNullOrEmpty(adminPassword))
+        {
+            banError = "Please enter admin password";
+            return;
+        }
+
+        try
+        {
+            IdentityResult result;
+            
+            if (selectedUser.isBanned)
+            {
+                result = await UserService.UnBanUser(selectedUser.userId, adminPassword);
+            }
+            else
+            {
+                result = await UserService.BanUser(selectedUser.userId, adminPassword);
+            }
+
+            if (result.Succeeded)
+            {
+                showPasswordDialog = false;
+                await LoadUsers();
+                StateHasChanged();
+            }
+            else
+            {
+                banError = result.Errors.FirstOrDefault()?.Description ?? "Operation failed";
+            }
+        }
+        catch (Exception ex)
+        {
+            banError = ex.Message;
+        }
+    }
+
+    private void CancelBanAction()
+    {
+        showPasswordDialog = false;
+        banError = string.Empty;
+    }
+}

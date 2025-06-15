@@ -20,12 +20,12 @@ namespace ServerMM.Controllers
         {
             var result = await _userRepository.Register(dto);
 
-            if (result.Succeeded)
+            if (result!=null)
             {
-                return Ok();
+                return Ok(result);
             }
 
-            return BadRequest(result.Errors);
+            return Unauthorized();
         }
 
         [HttpPost("login")]
@@ -35,12 +35,12 @@ namespace ServerMM.Controllers
 
             var result = await _userRepository.Login(dto, ipAddress);
 
-            if (result.Succeeded)
+            if (result != null)
             {
-                return Ok();
+                return Ok(result);
             }
 
-            return BadRequest(result.Errors);
+            return Unauthorized();
         }
 
         [HttpPost("forgot-password")]

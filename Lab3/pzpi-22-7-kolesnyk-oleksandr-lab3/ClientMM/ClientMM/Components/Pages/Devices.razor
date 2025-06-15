@@ -1,0 +1,531 @@
+﻿@page "/device"
+@using ClientMM.Dtos
+@using ClientMM.Services
+@using ClientMM.Interfaces
+@using ClientMM.Models
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.DropDowns
+@inject IDeviceService DeviceService
+@inject NavigationManager Navigation
+@inject ICookieService cookieService
+@inject IRecomendationService recomendationService
+@inject IAlertService alertService
+
+@rendermode InteractiveServer
+
+<PageTitle>Device Monitoring Dashboard</PageTitle>
+
+<div class="dashboard-container">
+    <div class="header-section form-group">
+        <h1>Medical Device Monitoring</h1>
+        <div class="action-buttons">
+            <SfButton @onclick="ShowAddDeviceDialog" CssClass="e-primary">
+                <i class="fas fa-plus"></i> Add Device
+            </SfButton>
+            <SfButton @onclick="RefreshDevices" CssClass="e-outline">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </SfButton>
+            <SfButton @onclick="GetRecommendation" CssClass="e-outline">
+                <i class="fas fa-history"></i> Get Recommendation
+            </SfButton>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-indicator">
+            <i class="fas fa-spinner fa-spin"></i> Loading devices...
+        </div>
+    }
+    else if (!devices?.Any() ?? true)
+    {
+        <div class="no-devices">
+            <i class="fas fa-heartbeat"></i>
+            <p>No devices registered yet. Add your first device to begin monitoring.</p>
+        </div>
+    }
+    else
+    {
+        <SfGrid @ref="DevicesGrid" GridLines="GridLine.Both" DataSource="@devices"AllowSorting="true" AllowResizing="true">
+            <GridColumns>
+                <GridColumn Field=@nameof(ClientMM.Models.Device.deviceId) HeaderText="ID" Width="80" TextAlign="TextAlign.Center"></GridColumn>
+                <GridColumn Field=@nameof(ClientMM.Models.Device.deviceName) HeaderText="Device Name"></GridColumn>
+                <GridColumn Field=@nameof(ClientMM.Models.Device.serialNumber) HeaderText="Serial Number"></GridColumn>
+                <GridColumn Field=@nameof(ClientMM.Models.Device.deviceType) HeaderText="Type" Width="120"></GridColumn>
+                <GridColumn Field=@nameof(ClientMM.Models.Device.registeredAt) HeaderText="Registered" Format="d" Width="120"></GridColumn>
+                <GridColumn HeaderText="Actions" Width="300">
+                    <Template>
+                        @{
+                            var device = (context as ClientMM.Models.Device);
+                            <div class="grid-actions">
+                                <SfButton @onclick="@(() => ShowDataDialog(device.deviceId))" CssClass="e-small e-info">
+                                    <i class="fas fa-chart-line"></i> Data
+                                </SfButton>
+                                <SfButton @onclick="@(() => ShowHistoryDialog(device.deviceId))" CssClass="e-small e-outline">
+                                    <i class="fas fa-history"></i> History
+                                </SfButton>
+                                <SfButton @onclick="@(() => AddDataHistory(device.serialNumber))" CssClass="e-small e-outline">
+                                    <i class="fas fa-history"></i> AddData
+                                </SfButton>
+                                <SfButton @onclick="@(() => ConfirmDelete(device.deviceId))" CssClass="e-small e-danger">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </SfButton>
+                            </div>
+                        }
+                    </Template>
+                </GridColumn>
+            </GridColumns>
+        </SfGrid>
+    }
+</div>
+
+<!-- Add Device Dialog -->
+<SfDialog @bind-Visible="@showAddDeviceDialog" Width="500px" ShowCloseIcon="true" Header="Register New Device">
+    <DialogTemplates>
+        <Content>
+            <div class="form-group">
+                <label>Device Name:</label>
+                <SfTextBox @bind-Value="@newDevice.DeviceName" Placeholder="e.g., My Smart Watch"></SfTextBox>
+            </div>
+            <div class="form-group">
+                <label>Serial Number:</label>
+                <SfTextBox @bind-Value="@newDevice.SerialNumber" Placeholder="Device serial number"></SfTextBox>
+            </div>
+            <div class="form-group">
+                <label>Device Type:</label>
+                <SfDropDownList TValue="string" TItem="string" @bind-Value="@newDevice.DeviceType" DataSource="@deviceTypes" Placeholder="Select device type">
+                </SfDropDownList>
+            </div>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-message">@errorMessage</div>
+            }
+        </Content>
+    </DialogTemplates>
+    <DialogButtons>
+        <DialogButton Content="Register" OnClick="@RegisterDevice" IsPrimary="true" />
+        <DialogButton Content="Cancel" OnClick="@CancelAddDevice" />
+    </DialogButtons>
+</SfDialog>
+
+
+<!-- Add Device Data -->
+<SfDialog @bind-Visible="@showAddDataDialog" Width="500px" ShowCloseIcon="true" Header="Load new Data">
+    <DialogTemplates>
+        <Content>
+            <div class="form-group">
+                <label>Heart Rate (bpm):</label>
+                <SfNumericTextBox @bind-Value="@newSensorData.heartRate" Placeholder="Enter heart rate"></SfNumericTextBox>
+            </div>
+            <div class="form-group">
+                <label>Blood Oxygen Level (%):</label>
+                <SfNumericTextBox @bind-Value="@newSensorData.bloodOxygenLevel" Format="P2" 
+                                  Placeholder="Enter blood oxygen level" Decimals="2" Step="0.01"></SfNumericTextBox>
+            </div>
+            <div class="form-group">
+                <label>Body Temperature (°C):</label>
+                <SfNumericTextBox @bind-Value="@newSensorData.bodyTemperature" Format="N1" 
+                                  Placeholder="Enter body temperature" Decimals="1" Step="0.1"></SfNumericTextBox>
+            </div>
+            <div class="form-group">
+                <label>Activity Level:</label>
+                <SfTextBox @bind-Value="@newSensorData.activityLevel"
+                           Placeholder="e.g., Low, Medium, High" MaxLength="10"></SfTextBox>
+            </div>
+            <div class="form-group">
+                <label>Sleep Phase:</label>
+                <SfTextBox @bind-Value="@newSensorData.sleepPhase"
+                           Placeholder="e.g., Light, Deep, REM" MaxLength="10"></SfTextBox>
+            </div>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-message">@errorMessage</div>
+            }
+        </Content>
+    </DialogTemplates>
+    <DialogButtons>
+        <DialogButton Content="Save" OnClick="@AddSensorData" IsPrimary="true" />
+        <DialogButton Content="Cancel" OnClick="@CancelAddSensorData" />
+    </DialogButtons>
+</SfDialog>
+
+
+<!-- Recommendation -->
+<SfDialog @bind-Visible="@showRecommendationDialog" Width="600px" ShowCloseIcon="true" Header="Recommendation">
+    <DialogTemplates>
+        <Content>
+            <div class="recommendation-header">
+                <small>Recommendation generated at: @recommendation.generatedAt.ToString("g")</small>
+            </div>
+            <div class="form-group">
+                <label>Recommendation:</label>
+                <SfTextBox @bind-Value="@recommendation.recommendationText"
+                           Multiline="true" Rows="8"
+                           Placeholder="Enter your detailed recommendation here..."></SfTextBox>
+            </div>
+            <div class="form-group">
+                <small class="note">Note: This recommendation will be saved to the user's profile</small>
+            </div>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="error-message">@errorMessage</div>
+            }
+        </Content>
+    </DialogTemplates>
+    <DialogButtons>
+        <DialogButton Content="Send" OnClick="@SendRecommendation" IsPrimary="true" />
+        <DialogButton Content="Cancel" OnClick="@CloseRecommendation" />
+    </DialogButtons>
+</SfDialog>
+
+<!-- Sensor Data Dialog -->
+<SfDialog @bind-Visible="@showDataDialog" Width="600px" ShowCloseIcon="true" Header='@($"Sensor Data - Device {selectedDeviceId}")'>
+    <DialogTemplates>
+        <Content>
+            <div class="sensor-data-container">
+                <div class="sensor-card">
+                    <div class="sensor-value">@(latestData?.heartRate?.ToString() ?? "--")</div>
+                    <div class="sensor-label">Heart Rate (bpm)</div>
+                </div>
+                <div class="sensor-card">
+                    <div class="sensor-value">@(latestData?.bloodOxygenLevel?.ToString() ?? "--")</div>
+                    <div class="sensor-label">Oxygen (%)</div>
+                </div>
+                <div class="sensor-card">
+                    <div class="sensor-value">@(latestData?.bodyTemperature?.ToString() ?? "--")</div>
+                    <div class="sensor-label">Temp (°C)</div>
+                </div>
+            </div>
+            <div class="sensor-meta">
+                <div><strong>Activity:</strong> @(latestData?.activityLevel ?? "Unknown")</div>
+                <div><strong>Sleep Phase:</strong> @(latestData?.sleepPhase ?? "Unknown")</div>
+                <div><strong>Last Update:</strong> @(latestData?.timestamp.ToString("g") ?? "Never")</div>
+            </div>
+        </Content>
+    </DialogTemplates>
+    <DialogButtons>
+        <DialogButton Content="Close" OnClick="@CloseDataDialog" IsPrimary="true" />
+    </DialogButtons>
+</SfDialog>
+
+<!-- History Dialog -->
+<SfDialog @bind-Visible="@showHistoryDialog" Width="800px" ShowCloseIcon="true" Header='@($"History - Device {selectedDeviceId}")'>
+    <DialogTemplates>
+        <Content>
+            @if (deviceHistory == null || !deviceHistory.Any())
+            {
+                <div class="no-data">
+                    <i class="fas fa-database"></i>
+                    <p>No historical data available for this device</p>
+                </div>
+            }
+            else
+            {
+                <SfGrid DataSource="@deviceHistory" AllowPaging="true" AllowSorting="true">
+                    <GridPageSettings PageSize="10"></GridPageSettings>
+                    <GridColumns>
+                        <GridColumn Field=@nameof(SensorData.timestamp) HeaderText="Timestamp" Format="g" Width="160"></GridColumn>
+                        <GridColumn Field=@nameof(SensorData.heartRate) HeaderText="Heart Rate" Width="100"></GridColumn>
+                        <GridColumn Field=@nameof(SensorData.bloodOxygenLevel) HeaderText="Oxygen %" Width="100"></GridColumn>
+                        <GridColumn Field=@nameof(SensorData.bodyTemperature) HeaderText="Temp (°C)" Width="100"></GridColumn>
+                        <GridColumn Field=@nameof(SensorData.activityLevel) HeaderText="Activity" Width="100"></GridColumn>
+                        <GridColumn Field=@nameof(SensorData.sleepPhase) HeaderText="Sleep Phase" Width="120"></GridColumn>
+                    </GridColumns>
+                </SfGrid>
+            }
+        </Content>
+    </DialogTemplates>
+    <DialogButtons>
+        <DialogButton Content="Close" OnClick="@CloseHistoryDialog" IsPrimary="true" />
+    </DialogButtons>
+</SfDialog>
+
+<!-- Delete Confirmation Dialog -->
+<SfDialog @bind-Visible="@showDeleteDialog" Width="400px" ShowCloseIcon="true" Header="Confirm Deletion">
+    <DialogTemplates>
+        <Content>
+            <p>Are you sure you want to delete this device and all its data?</p>
+            <p class="warning-text"><i class="fas fa-exclamation-triangle"></i> This action cannot be undone!</p>
+        </Content>
+    </DialogTemplates>
+    <DialogButtons>
+        <DialogButton Content="Delete" OnClick="@DeleteDevice" IsPrimary="true" CssClass="e-danger" />
+        <DialogButton Content="Cancel" OnClick="@CancelDelete" />
+    </DialogButtons>
+</SfDialog>
+
+@code {
+    private List<Device> devices;
+    private int userId = 0;
+    private SfGrid<Device> DevicesGrid;
+    private bool isLoading = true;
+    private bool showAddDeviceDialog = false;
+    private bool showAddDataDialog = false;
+    private bool showDataDialog = false;
+    private bool showHistoryDialog = false;
+    private bool showDeleteDialog = false;
+    private bool showRecommendationDialog = false;
+    private string errorMessage = string.Empty;
+    private int? selectedDeviceId = null;
+    private string? selectedDeviceSerialNumber = string.Empty;
+    private SensorData latestData;
+    private List<SensorData> deviceHistory;
+    private CreateDeviceDto newDevice = new();
+    private List<string> deviceTypes = new() { "SmartWatch", "PulseOximeter", "Thermometer", "BloodPressureMonitor", "ECG Monitor" };
+    private SensorData newSensorData = new();
+    private Recommendation recommendation = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDevices();
+    }
+
+    private async Task LoadDevices()
+    {
+        isLoading = true;
+        if (Int32.TryParse(cookieService.GetCookie("Id"), out userId))
+        {
+            try
+            {
+                devices = await DeviceService.GetDevices(userId);
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Failed to load devices: {ex.Message}";
+            }
+            finally
+            {
+                isLoading = false;
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            Navigation.NavigateTo("/");
+        }
+
+    }
+
+    private async Task RefreshDevices()
+    {
+        await LoadDevices();
+    }
+
+    private void ShowAddDeviceDialog()
+    {
+        newDevice = new CreateDeviceDto() {UserId = userId};
+        errorMessage = string.Empty;
+        showAddDeviceDialog = true;
+    }
+
+    private async Task RegisterDevice()
+    {
+        if (string.IsNullOrWhiteSpace(newDevice.DeviceName))
+        {
+            errorMessage = "Device name is required";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(newDevice.SerialNumber))
+        {
+            errorMessage = "Serial number is required";
+            return;
+        }
+
+        try
+        {
+            var result = await DeviceService.AddDevice(newDevice);
+
+            if (result.Succeeded)
+            {
+                showAddDeviceDialog = false;
+                await LoadDevices();
+            }
+            else
+            {
+                errorMessage = result.Errors.FirstOrDefault()?.Description ?? "Failed to register device";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+    }
+
+    private void CancelAddDevice()
+    {
+        showAddDeviceDialog = false;
+        errorMessage = string.Empty;
+    }
+
+    private async Task AddSensorData()
+    {
+        try
+        {
+            var result = await DeviceService.AddSensorData(selectedDeviceSerialNumber,
+                new AddSensorDataDto{ActivityLevel = newSensorData.activityLevel, BloodOxygenLevel = newSensorData.bloodOxygenLevel, BodyTemperature = newSensorData.bodyTemperature, HeartRate = newSensorData.heartRate, SleepPhase = newSensorData.sleepPhase}
+            );
+
+            if (result.Succeeded)
+            {
+                showAddDataDialog = false;
+            }
+            else
+            {
+                errorMessage = result.Errors.FirstOrDefault()?.Description ?? "Failed to register device";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+    }
+
+    private void CancelAddSensorData()
+    {
+        showAddDataDialog = false;
+        errorMessage = string.Empty;
+    }
+
+    private async Task ShowDataDialog(int deviceId)
+    {
+        selectedDeviceId = deviceId;
+        try
+        {
+            var history = await DeviceService.GetDeviceHistory(deviceId);
+            latestData = history?.OrderByDescending(d => d.timestamp).FirstOrDefault();
+            showDataDialog = true;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load device data: {ex.Message}";
+        }
+    }
+
+    private void CloseDataDialog()
+    {
+        showDataDialog = false;
+        latestData = null;
+        selectedDeviceId = null;
+    }
+
+    private async Task AddDataHistory(string SerialNumber)
+    {
+        showAddDataDialog = true;
+        errorMessage = "";
+        selectedDeviceSerialNumber = SerialNumber;
+    }
+
+    private async Task ShowHistoryDialog(int deviceId)
+    {
+        selectedDeviceId = deviceId;
+        try
+        {
+            deviceHistory = await DeviceService.GetDeviceHistory(deviceId);
+            showHistoryDialog = true;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load device history: {ex.Message}";
+        }
+    }
+
+    private void CloseHistoryDialog()
+    {
+        showHistoryDialog = false;
+        deviceHistory = null;
+        selectedDeviceId = null;
+    }
+
+    private void ConfirmDelete(int deviceId)
+    {
+        selectedDeviceId = deviceId;
+        showDeleteDialog = true;
+    }
+
+    private async Task DeleteDevice()
+    {
+        if (!selectedDeviceId.HasValue) return;
+
+        try
+        {
+            var result = await DeviceService.DeleteDevice(selectedDeviceId.Value);
+
+            if (result.Succeeded)
+            {
+                await LoadDevices();
+                showDeleteDialog = false;
+            }
+            else
+            {
+                errorMessage = result.Errors.FirstOrDefault()?.Description ?? "Failed to delete device";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            selectedDeviceId = null;
+        }
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteDialog = false;
+        selectedDeviceId = null;
+    }
+
+    private async Task SendRecommendation()
+    {
+        showRecommendationDialog = false;
+        try
+        {
+            CreateAlertDto alert = new CreateAlertDto { AlertMessage = recommendation.recommendationText, AlertType = "Emergency", UserId = userId};
+            var result = await alertService.CreateAlert(alert);
+            if (!result.Succeeded)
+            {
+                var error = result.Errors.FirstOrDefault();
+                if (error != null)
+                {
+                    errorMessage = error.Description;
+                }
+            }
+
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to send recommendation: {ex.Message}";
+        }
+    }
+
+    private void CloseRecommendation()
+    {
+        showRecommendationDialog = false;
+        errorMessage = "";
+    }
+
+    private async Task GetRecommendation()
+    {
+        try
+        {
+            recommendation = await recomendationService.GenerateRecommendationForUser(userId);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to generate recommendation: {ex.Message}";
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+        if (recommendation != null)
+        {
+            showRecommendationDialog = true;
+        }
+    }
+}

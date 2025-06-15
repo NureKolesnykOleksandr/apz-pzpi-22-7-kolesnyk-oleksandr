@@ -1,0 +1,120 @@
+﻿@page "/register"
+@using ClientMM.Services
+@using ClientMM.Interfaces
+@using ClientMM.Dtos
+@using Microsoft.AspNetCore.Components
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Calendars
+@inject IUserService UserService
+@inject NavigationManager Navigation
+@inject StateContainer StateContainer
+
+@rendermode InteractiveServer
+
+<div class="register-container">
+    <div class="register-form">
+        <h2 class="form-title">Create MedMon Account</h2>
+
+        @if (errorMessage != null)
+        {
+            <div class="alert-danger">@errorMessage</div>
+        }
+
+        <div class="register-object">
+            <SfTextBox @bind-Value="firstName" Placeholder="First Name" FloatLabelType="@FloatLabelType.Auto" >
+            </SfTextBox>
+        </div>
+
+        <div class="register-object">
+            <SfTextBox @bind-Value="lastName" Placeholder="Last Name" FloatLabelType="@FloatLabelType.Auto">
+            </SfTextBox>
+        </div>
+
+        <div class="register-object">
+            <SfTextBox @bind-Value="email" Placeholder="Email" FloatLabelType="@FloatLabelType.Auto">
+            </SfTextBox>
+        </div>
+
+        <div class="register-object">
+            <SfTextBox @bind-Value="emergencyEmail" Placeholder="Emergency Email" FloatLabelType="@FloatLabelType.Auto">
+            </SfTextBox>
+        </div>
+
+        <div class="register-object">
+            <SfTextBox @bind-Value="password" Placeholder="Password" Type="InputType.Password" FloatLabelType="@FloatLabelType.Auto">
+            </SfTextBox>
+        </div>
+
+         <div class="register-object">
+            <SfDatePicker @bind-Value="dateOfBirth" Placeholder="Date of Birth" FloatLabelType="@FloatLabelType.Auto">
+            </SfDatePicker>
+        </div>
+
+        <div class="register-object">
+            <SfDropDownList TValue="string" TItem="string" DataSource="genders" Placeholder="Select a gender" Value="gender"></SfDropDownList>
+        </div>
+
+        <div class="form-footer">
+            <button @onclick="HandleRegister">Register</button>
+            <button @onclick="NavigateToLogin">Login</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string firstName = string.Empty;
+    private string lastName = string.Empty;
+    private string email = string.Empty;
+    private string emergencyEmail = string.Empty;
+    private string password = string.Empty;
+    private DateTime dateOfBirth = DateTime.MinValue;
+    private string gender = "Male";
+    private string? errorMessage;
+    private string[] genders = { "Male", "Female" };
+
+    protected async override Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        StateContainer.ShowHeader = false;
+    }
+
+    private async Task HandleRegister()
+    {
+        try
+        {
+            var result = await UserService.Register(new RegisterDto
+                {
+                    FirstName = firstName,
+                    LastName = lastName,
+                    Email = email,
+                    EmergencyEmail = emergencyEmail,
+                    Password = password,
+                    DateOfBirth = dateOfBirth,
+                    Gender = gender
+                });
+
+            if (result != null)
+            {
+                StateContainer.ShowHeader = true;
+                Navigation.NavigateTo("/");
+                StateHasChanged();
+            }
+            else
+            {
+                errorMessage = "Registration failed. Please check your information.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Registration failed: " + ex.Message;
+        }
+    }
+
+    private void NavigateToLogin()
+    {
+        Navigation.NavigateTo("/login");
+    }
+}

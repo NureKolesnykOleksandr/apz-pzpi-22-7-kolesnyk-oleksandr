@@ -7,6 +7,7 @@ using ServerMM.Models;
 using System.Net;
 using System.Net.Mail;
 using System.Reflection;
+using System.Security;
 
 namespace ServerMM.Repositories
 {
@@ -31,7 +32,7 @@ namespace ServerMM.Repositories
                 m.Body = body;
                 SmtpClient smtp = new SmtpClient("smtp.gmail.com", 587)
                 {
-                    Credentials = new NetworkCredential("oleksandr.kolesnyk@nure.ua", "qwert2004"),
+                    Credentials = new NetworkCredential("oleksandr.kolesnyk@nure.ua", "wlto cyrn imtd zdwx"),
                     EnableSsl = true
                 };
                 smtp.Send(m);
@@ -54,19 +55,14 @@ namespace ServerMM.Repositories
             return BCrypt.Net.BCrypt.Verify(password, hashedPassword);
         }
 
-        public async Task<IdentityResult> Register(RegisterDto registerDto)
+        public async Task<LoginResultDto?> Register(RegisterDto registerDto)
         {
             if (registerDto.Gender != "Male" && registerDto.Gender != "Female")
             {
-                return IdentityResult.Failed(new IdentityError
-                {
-                    Description = "Оберіть справжній гендер. Так я вважаю шо є тільки 2 гендера. Закенселіть мене, якщо захочете"
-                });
+                throw new VerificationException("Оберіть справжній гендер. Так я вважаю шо є тільки 2 гендера. Закенселіть мене, якщо захочете");
             }
 
             string hashedPassword = HashPassword(registerDto.Password);
-
-
 
             User user = new User
             {
@@ -93,36 +89,32 @@ namespace ServerMM.Repositories
                 MaxBodyTemperature = 37.5
             };
 
-            // Добавляем настройки пользователя
             await context.UserOptions.AddAsync(userOptions);
             int changes = await context.SaveChangesAsync();
 
             if (changes > 0)
             {
-                return IdentityResult.Success;
+                return new LoginResultDto() { Email = user.Email, FirstName = user.FirstName, UserId = user.UserId };
             }
             else
             {
-                return IdentityResult.Failed(new IdentityError
-                {
-                    Description = "Помилка при регістрації"
-                });
+                throw new Exception("Помилка при регістрації");
             }
 
         }
 
-        public async Task<IdentityResult> Login(LoginDto loginDto, string ip)
+        public async Task<LoginResultDto?> Login(LoginDto loginDto, string ip)
         {
             User user = await context.Users.FirstOrDefaultAsync(u => u.Email == loginDto.Email);
 
             if (user == null)
             {
-                return IdentityResult.Failed(new IdentityError { Description = "Такого аккаунта не існує" });
+                throw new UnauthorizedAccessException("Такого аккаунта не існує");
             }
 
             if (user.isBanned)
             {
-                return IdentityResult.Failed(new IdentityError { Description = "Користувача заблоковано" });
+                throw new UnauthorizedAccessException("Користувача заблоковано");
             }
 
             if (CheckPassword(loginDto.Password, user.PasswordHash))
@@ -130,13 +122,13 @@ namespace ServerMM.Repositories
                 UserLogin login = new UserLogin() { UserId = user.UserId, IPAddress = ip };
                 await context.UserLogins.AddAsync(login);
                 await context.SaveChangesAsync();
-                return IdentityResult.Success;
+                return new LoginResultDto { Email = user.Email, FirstName = user.FirstName, UserId = user.UserId};
             }
 
-            return IdentityResult.Failed(new IdentityError { Description = "Неправильний пароль чи пошта" });
+            return null;
         }
 
-        public async Task<IdentityResult> ForgotPassword(ForgotPasswordDto forgotPasswordDto)
+        public async Task<IdentityResult?> ForgotPassword(ForgotPasswordDto forgotPasswordDto)
         {
             User user = await context.Users.FirstOrDefaultAsync(u => u.Email == forgotPasswordDto.Email);
 

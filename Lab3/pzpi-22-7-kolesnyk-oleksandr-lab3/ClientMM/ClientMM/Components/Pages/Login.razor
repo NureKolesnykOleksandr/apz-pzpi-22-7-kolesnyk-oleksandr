@@ -1,0 +1,151 @@
+﻿@page "/login"
+@using ClientMM.Services
+@using ClientMM.Interfaces
+@using ClientMM.Dtos
+@using Microsoft.AspNetCore.Components
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.Calendars
+@inject IUserService UserService
+@inject NavigationManager Navigation
+@inject StateContainer StateContainer
+
+@rendermode InteractiveServer
+
+<div class="login-container">
+    <div class="login-form">
+        <h2 class="form-title">Login to MedMon</h2>
+
+        @if (errorMessage != null)
+        {
+            <div class="alert-danger">@errorMessage</div>
+        }
+        
+        @if (!showForgotPassword)
+        {
+            <div class="login-object">
+                <SfTextBox @bind-Value="email" Placeholder="Email" FloatLabelType="@FloatLabelType.Auto">
+                </SfTextBox>
+            </div>
+
+            <div class="login-object">
+                <SfTextBox @bind-Value="password" Placeholder="Password" Type="InputType.Password" FloatLabelType="@FloatLabelType.Auto">
+                </SfTextBox>
+            </div>
+            
+            <div class="form-footer">
+                <button @onclick="HandleLogin">Login</button>
+                <button @onclick="ShowForgotPassword">Reset Password</button>
+                <button @onclick="NavigateToRegister">Register</button>
+            </div>
+        }
+        else
+        {
+            <div class="forgot-password-form">
+                <h3>Password Recovery</h3>
+                
+                <div class="login-object">
+                    <SfTextBox @bind-Value="forgotPasswordDto.Email" Placeholder="Email" FloatLabelType="@FloatLabelType.Auto">
+                    </SfTextBox>
+                </div>
+
+                <div class="login-object">
+                    <SfTextBox @bind-Value="forgotPasswordDto.FirstName" Placeholder="First Name" FloatLabelType="@FloatLabelType.Auto">
+                    </SfTextBox>
+                </div>
+
+                <div class="login-object">
+                    <SfDatePicker @bind-Value="forgotPasswordDto.DateOfBirth" Placeholder="Date of Birth" FloatLabelType="@FloatLabelType.Auto">
+                    </SfDatePicker>
+                </div>
+
+                <div class="form-footer">
+                    <button @onclick="HandlePasswordReset">Submit</button>
+                    <button @onclick="CancelPasswordReset">Cancel</button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string email = string.Empty;
+    private string password = string.Empty;
+    private string? errorMessage;
+    private bool showForgotPassword = false;
+    private ForgotPasswordDto forgotPasswordDto = new();
+
+    protected async override Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+        StateContainer.ShowHeader = false;
+    }
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            var result = await UserService.Login(new LoginDto
+            {
+                Email = email,
+                Password = password
+            }, "127.0.0.1");
+
+            if (result != null)
+            {
+                StateContainer.ShowHeader = true;
+                Navigation.NavigateTo("/");
+                StateHasChanged();
+            }
+            else
+            {
+                errorMessage = "Invalid email or password";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Login failed: " + ex.Message;
+        }
+    }
+
+    private void ShowForgotPassword()
+    {
+        showForgotPassword = true;
+        forgotPasswordDto = new();
+        errorMessage = null;
+    }
+
+    private void CancelPasswordReset()
+    {
+        showForgotPassword = false;
+        errorMessage = null;
+    }
+
+    private async Task HandlePasswordReset()
+    {
+        try
+        {
+            var result = await UserService.ForgotPassword(forgotPasswordDto);
+
+            if (result.Succeeded)
+            {
+                errorMessage = "Password reset instructions have been sent to your email";
+                showForgotPassword = false;
+            }
+            else
+            {
+                errorMessage = result.Errors.ToString();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Password reset failed: " + ex.Message;
+        }
+    }
+
+    private void NavigateToRegister()
+    {
+        Navigation.NavigateTo("/register");
+    }
+}

@@ -17,7 +17,7 @@ namespace ServerMM.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetDevices()
+        public async Task<IActionResult> GetUsers()
         {
             var users = await userRepository.GetUsers();
             return Ok(users);

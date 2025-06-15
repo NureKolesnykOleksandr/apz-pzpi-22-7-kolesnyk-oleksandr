@@ -29,9 +29,8 @@ namespace ServerMM.Controllers
                 return Unauthorized();
             }
             return Ok("Користувача успішно забанено");
-
         }
-
+            
         [HttpPut("unban/{userId}")]
         public async Task<IActionResult> UnbanUser(int userId, string password)
         {

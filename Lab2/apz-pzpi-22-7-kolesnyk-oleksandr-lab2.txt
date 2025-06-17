@@ -1,0 +1,248 @@
+Міністерство освіти і науки України
+Харківський національний університет радіоелектроніки
+
+
+
+
+
+Кафедра «Програмної інженерії»
+
+
+
+
+Дисципліна «Архітектура програмного забезпечення» 
+Лабораторна робота №2
+
+
+
+
+
+Виконав:
+ст. гр. ПЗПІ-22-7
+Колесник О.А	Прийняв:
+ ст. викл.
+Сокорчук І.П
+
+
+
+Харків – 2025 
+1 ІСТОРІЯ ЗМІН
+
+№	Дата 	Версія	Опис змін	Автор
+1	12.05.25	0.1	Було створено розділ «Завдання».	Колесник Олександр
+2	12.05.25	0.1	Було створено розділ «Опис виконаної роботи».	Колесник Олександр
+3	12.05.25	0.1	Було створено розділ «Висновки з роботи»	Колесник Олександр
+4	13.05.25	0.2	Було створено розділ «Додаток А»	Колесник Олександр
+5	14.05.25	0.3	Було створено розділ «Додаток Б»	Колесник Олександр
+6	14.05.25	0.3	Було створено розділ «Додаток В»	Колесник Олександр
+
+2 ЗАВДАННЯ
+Мета завдання – розробити серверну (back-end) частину програмної системи, що забезпечує повноцінне управління даними користувачів, реалізацію бізнес-логіки, взаємодію з базою даних та зовнішніми сервісами, а також підтримує масштабування та безпеку. У рамках завдання необхідно спроєктувати архітектуру серверної частини, реалізувати REST API, обрати відповідні програмні технології, провести функціональне тестування та описати прийняті інженерні рішення.
+3 ОПИС ВИКОНАНОЇ РОБОТИ
+Програмна система має клієнт-серверну архітектуру. Серверна частина реалізована за допомогою фреймворку .NET на мові програмування C#. Для збереження даних використовується база даних SQLite.
+Серверна частина складається з наступних модулів:
+1. Авторизація: вхід та реєстрація користувачів;
+2. Повідомлення: повідомлення певному користувачу на пошту;
+3. Пристрої: надання інформаціїз певного пристрою, реєстрація, зміна, видалення певних пристроїв та перегляд історії датчиків. 
+4. Рекомендації: отримання автоматичних рекомендацій для певного користувача відносного останніх показників датчиків.
+5. Користувач: перегляд профілю користувача, задання нових налаштувань, зміна профілю.
+6. Адміністрування: перегляд, редагування та видалення інформації про користувачів,  IoT-серсори та погодні виміри.
+На рисунках Б.1 у додатку Б наведені UML діаграму прецедентів.
+На рисунку Б.2 у додатку Б наведена діаграма розгортання.
+На рисунку Б.3 у додатку Б наведена діаграмма компонентів.
+На рисунку Б.4 у додатку Б наведена ER-діаграма.
+Таблиця 1 – специфікація API:
+Метод	Ендпоінт	Опис
+Адміністрування
+Delete	/api/admin/ban/{userId}	Заблокувати користувача (вимагає пароля адміна)
+Put	/api/admin/unban/{userId}	Розблокувати користувача (вимагає пароля адміна)
+Керування сповіщеннями
+POST	/api/alert	Створити нове сповіщення (тип, повідомлення, ID користувача)
+Аутентифікація
+POST	/api/Auth/register	Реєстрація нового користувача
+POST	/api/Auth/login	Вхід в систему
+POST	/api/Auth/forgot-password	Відновлення пароля (по email та даті народження)
+Керування пристроями
+POST	/api/Device	Додати новий пристрій
+POST	/api/Device/SensorData/{SerialNumber}	Надіслати дані з сенсорів пристрою
+GET	/api/Device/{userId}	Отримати список пристроїв користувача
+PUT	/api/Device/{deviceId}	Оновити інформацію про пристрій
+DELETE	/api/Device/{deviceId}/history	Видалити історію даних пристрою
+GET	/api/Device/{deviceId}/history	Отримати історію даних пристрою
+Рекомендації
+GET	/api/recommendation/user/{userId}	Отримати рекомендації для користувача (повертає 404, якщо немає)
+GET	/api/recommendation/{userId}/generate	Згенерувати нові рекомендації на основі даних
+Керування користувачами
+GET	/api/User	Отримати список користувачів
+PUT	/api/User/{userId}	Оновити профіль користувача (ім'я, прізвище, стать, дату народження)
+PUT	/api/User/update-options/{userId}	Оновити медичні параметри користувача (пульс, рівень кисню тощо)
+
+Опис бази даних:
+Таблиця Devices:
+	DeviceId - int, первинний ключ (автозбільшення);
+	DeviceName - string, обов'язкове (макс. 100 символів);
+	UserId - int, обов'язкове (зв'язок з Users);
+	DeviceType - string, обов'язкове (макс. 50 символів);
+	SerialNumber - string, обов'язкове, унікальне (макс. 100 символів);
+	RegisteredAt - DateTime, обов'язкове.
+Таблиця UserLogins:
+	LoginId - int, первинний ключ (автозбільшення);
+	UserId - int, обов'язкове (зв'язок з Users);
+	LoginTime - DateTime, обов'язкове;
+	IPAddress - string, обов'язкове (макс. 45 символів).
+Таблиця Users:
+	UserId - int, первинний ключ (автозбільшення);
+	FirstName - string, обов'язкове (макс. 50 символів);
+	LastName - string, обов'язкове (макс. 50 символів);
+	Email - string, обов'язкове, унікальне;
+	EmergencyEmail - string, обов'язкове;
+	PasswordHash - string, обов'язкове;
+	DateOfBirth - DateTime, необов'язкове;
+	Gender - string, обов'язкове (макс. 10 символів);
+	CreatedAt - DateTime, обов'язкове;
+	isBanned - bool, обов'язкове (за замовчуванням false).
+Таблиця SensorData:
+	DataId - int, первинний ключ (автозбільшення);
+	DeviceId - int, обов'язкове (зв'язок з Devices);
+	Timestamp - DateTime, обов'язкове;
+	HeartRate - int, необов'язкове;
+	BloodOxygenLevel - double, необов'язкове;
+	BodyTemperature - double, необов'язкове;
+	ActivityLevel - string, обов'язкове (макс. 10 символів);
+	SleepPhase - string, обов'язкове (макс. 10 символів).
+Таблиця Alerts:
+	AlertId - int, первинний ключ (автозбільшення);
+	UserID - int, обов'язкове (зв'язок з Users);
+	Timestamp - DateTime, обов'язкове;
+	AlertType - string, обов'язкове (макс. 50 символів);
+	AlertMessage - string, обов'язкове;
+	IsAcknowledged - bool, обов'язкове (за замовчуванням false).
+Таблиця Recommendations:
+	RecommendationId - int, первинний ключ (автозбільшення);
+	UserId - int, обов'язкове (зв'язок з Users);
+	GeneratedAt - DateTime, обов'язкове;
+	RecommendationText - string, обов'язкове.
+Таблиця UserOptions:
+	UserId - int, первинний ключ (зв'язок з Users);
+	MinPulse - int, обов'язкове;
+	MaxPulse - int, обов'язкове;
+	MinOxygenLevel - int, обов'язкове;
+	MinBodyTemperature - double, обов'язкове;
+	MaxBodyTemperature - double, обов'язкове.
+4 ВИСНОВКИ З РОБОТИ
+У ході виконання лабораторної роботи було успішно розроблено та впроваджено серверну частину програмної системи MedMon з використанням сучасних технологій та архітектурних підходів. Головним результатом стало створення надійної та масштабованої back-end системи на платформі .NET Core, яка забезпечує повноцінне функціонування всіх ключових модулів: авторизації користувачів, керування медичними пристроями, обробки даних сенсорів, формування персоналізованих рекомендацій та генерації сповіщень.
+Реалізація патерну Proxy довела свою ефективність у системі, особливо у контексті контролю доступу до даних та оптимізації продуктивності. Цей підхід дозволив елегантно вирішити питання безпеки та кешування, хоча й потребував додаткових зусиль для підтримки абстрактних шарів. Особливу цінність має гнучка архітектура API, що дозволяє легко інтегрувати систему з різними клієнтськими додатками та IoT-пристроями.
+Використання SQLite у поєднанні з Entity Framework Core забезпечило простий механізм роботи з даними, а Docker-контейнеризація значно спростила процес розгортання. Система демонструє стабільну роботу та готова до подальшого розширення функціоналу, зокрема додавання нових типів медичних датчиків та інтеграції з зовнішніми медичними сервісами. Отримані результати підтверджують ефективність обраних технологічних рішень та відповідність системи сучасним вимогам до програмного забезпечення медичного призначення.
+ 
+ДОДАТОК А
+Посилання на відео та хронологічний опис
+https://youtu.be/B7pIuCifDuY
+00:00 Початок 
+00:12 Auth Controller 
+01:25 Device Controller 
+03:46 Recommendation Controller 
+05:35 User Controller 
+06:34 Admin Controller
+ 
+ДОДАТОК Б
+Графічні матеріали
+ 
+Рисунок Б.1 - UML діаграма прецедентів
+ 
+Рисунок Б.2 - UML діаграма розгортання
+ 
+Рисунок Б.3 - UML діаграма компонентів
+ 
+Рисунок Б.4 - ER діаграма даних 
+ДОДАТОК В
+Програмний код
+
+В.1 Математична обробка прикладних даних
+GitHub репозиторій: https://github.com/ArRuslan/apz-backend/blob/master/idk/routers/forecast.py#L13.
+1 public async Task<Recommendation> GenerateRecommendationForUser(int userId)
+2 {
+3     var user = await context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+4     if (user == null)
+5     {
+6         throw new ArgumentException($"Користувача з ID {userId} не знайдено.");
+7     }
+8    var lastSensorData = await context.SensorData
+9        .Where(s => s.Device.UserId == userId)
+10        .OrderByDescending(s => s.Timestamp)
+11        .FirstOrDefaultAsync();
+12    if (lastSensorData == null)
+13    {
+14        throw new InvalidOperationException("Немає даних датчиків для цього користувача.");
+15    }
+16    var userOptions = await context.UserOptions.FirstOrDefaultAsync(u => u.UserId == userId);
+17    if (userOptions == null)
+18    {
+19        throw new InvalidOperationException("Налаштування користувача не задано.");
+20    }
+
+21    bool isfine = true;
+22    string recommendationText = "";
+23    List<string> articles = new();
+24    bool isCritical = false;
+25    if (lastSensorData.HeartRate < userOptions.MinPulse)
+26    {
+27        var diff = userOptions.MinPulse - lastSensorData.HeartRate;
+28        recommendationText = $"Пульс занадто низький на {diff} уд./хв. Рекомендується збільшити активність або звернутися до лікаря.";
+29        articles.Add("https://medikom.ua/chto-takoe-bradikardiya/");
+30        if (diff > 20) isCritical = true;
+31        isfine = false;
+32    }
+33    else if (lastSensorData.HeartRate > userOptions.MaxPulse)
+34    {
+35       var diff = lastSensorData.HeartRate - userOptions.MaxPulse;
+36        recommendationText = $"Пульс занадто високий на {diff} уд./хв. Виконайте вправи для заспокоєння.";
+37        articles.Add("https://dobrobut.com/ua/med/c-tahikardia-kak-ponizit-puls-v-domasnih-usloviah");
+38        if (diff > 20) isCritical = true;
+39        isfine = false;
+40    }
+41    if (lastSensorData.BodyTemperature < userOptions.MinBodyTemperature)
+42    {
+43        var diff = userOptions.MinBodyTemperature - lastSensorData.BodyTemperature;
+ 44       recommendationText += $" Температура тіла занадто низька на {diff:0.0}°C. Зігрійтеся та зверніться до лікаря.";
+45        articles.Add("https://rplus.com.ua/blog/nizkaya-temperatura-tela-chto-delat/");
+46        if (diff > 2.0) isCritical = true;
+47        isfine = false;
+48    }
+49    else if (lastSensorData.BodyTemperature > userOptions.MaxBodyTemperature)
+50    {
+51        var diff = lastSensorData.BodyTemperature - userOptions.MaxBodyTemperature;
+52        recommendationText += $" Температура тіла занадто висока на {diff:0.0}°C. Зверніться до лікаря.";
+53        articles.Add("https://omegamc.ua/ua/spravochnik/klinicheskij/vysokaya-temperatura-chto-delat.html");
+54        if (diff > 2.0) isCritical = true;
+55        isfine = false;
+56    }
+57    if (lastSensorData.BloodOxygenLevel < userOptions.MinOxygenLevel)
+58    {
+59        var diff = userOptions.MinOxygenLevel - lastSensorData.BloodOxygenLevel;
+60        recommendationText += $" Рівень кисню занадто низький на {diff:0.0}%. Рекомендується виконати дихальні вправи.";
+ 61       articles.Add("https://medikom.ua/gipoksiya-vidy-lechenie-kislorodnoj-nedostatochnosti/");
+62        isfine = false;
+63    }
+64    if (isCritical)
+65    {
+66        recommendationText += $" У вас критична ситуація, рекомендуємо негайно повідомити свій Emergency контакт або викликати швидку.";
+67    }
+68    if (isfine == false)
+69    {
+70        recommendationText += "\nСтатті для допомоги: " + string.Join(", ", articles);
+71    }
+72    else
+73    {
+74        recommendationText = "Усі показники в нормі. Дій не потрібно.";
+75    }
+76    var recommendation = new Recommendation
+77    {
+78        UserId = userId,
+79        RecommendationText = recommendationText,
+80        GeneratedAt = DateTime.UtcNow
+81    };
+82    context.Recommendations.Add(recommendation);
+83    await context.SaveChangesAsync();
+84    return recommendation;
+85 }
+
